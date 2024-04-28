@@ -20,7 +20,7 @@ export const sendRequest = async (
 		xhr.onabort = () => reject(new Error('Request aborted'));
 		xhr.onerror = () => reject(new Error('Network error'));
 
-		for (const fn of config.interceptors.request._fns) {
+		for (const fn of config.interceptors!.request._fns) {
 			xhr = await fn(xhr);
 		}
 

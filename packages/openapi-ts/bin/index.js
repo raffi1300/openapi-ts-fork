@@ -63,7 +63,7 @@ async function start() {
     let userConfig;
     try {
         const { createClient } = await import(new URL('../dist/node/index.js', import.meta.url));
-        userConfig = processParams(params, [
+        userConfig = processParams({...params, name: 'Creo'}, [
             'dryRun',
             'exportCore',
             'exportModels',

@@ -60,11 +60,11 @@ export const getQueryString = (params: Record<string, unknown>): string => {
     return qs.length ? `?${qs.join('&')}` : '';
 };
 
-const getUrl = (config: OpenAPIConfig, options: ApiRequestOptions): string => {
-    const encoder = config.ENCODE_PATH || encodeURI;
+const getUrl = (config: OpenAPIConfig & {BASE: string}, options: ApiRequestOptions): string => {
+    const encoder =  encodeURI;
 
     const path = options.url
-        .replace('{api-version}', config.VERSION)
+        
         .replace(/{(.*?)}/g, (substring: string, group: string) => {
             if (options.path?.hasOwnProperty(group)) {
                 return encoder(String(options.path[group]));
@@ -185,7 +185,7 @@ export const sendRequest = <T>(
     return http.request<T>(options.method, url, {
         headers,
         body: body ?? formData,
-        withCredentials: config.WITH_CREDENTIALS,
+        withCredentials: false,
         observe: 'response',
     });
 };
@@ -285,7 +285,7 @@ export const catchErrorCodes = (options: ApiRequestOptions, result: ApiResult): 
  * @throws ApiError
  */
 export const request = <T>(config: OpenAPIConfig, http: HttpClient, options: ApiRequestOptions): Observable<T> => {
-    const url = getUrl(config, options);
+    const url = getUrl({...config, BASE: `https://api.creo-cloud.com`}, options);
     const formData = getFormData(options);
     const body = getRequestBody(options);
 
@@ -294,7 +294,7 @@ export const request = <T>(config: OpenAPIConfig, http: HttpClient, options: Api
             return sendRequest<T>(config, options, http, url, body, formData, headers);
         }),
         switchMap(async response => {
-            for (const fn of config.interceptors.response._fns) {
+            for (const fn of config.interceptors!.response._fns) {
                 response = await fn(response);
             }
             const responseBody = getResponseBody(response);

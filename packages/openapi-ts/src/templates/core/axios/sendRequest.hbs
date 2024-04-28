@@ -16,12 +16,12 @@ export const sendRequest = async <T>(
 		method: options.method,
 		signal: controller.signal,
 		url,
-		withCredentials: config.WITH_CREDENTIALS,
+		withCredentials: false,
 	};
 
 	onCancel(() => controller.abort());
 
-	for (const fn of config.interceptors.request._fns) {
+	for (const fn of config.interceptors!.request._fns) {
 		requestConfig = await fn(requestConfig);
 	}
 

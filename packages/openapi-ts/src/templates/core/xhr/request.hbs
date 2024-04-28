@@ -4,7 +4,7 @@ import type { ApiResult } from './ApiResult';
 import { CancelablePromise } from './CancelablePromise';
 import type { OnCancel } from './CancelablePromise';
 import type { OpenAPIConfig } from './OpenAPI';
-
+import qs from 'qs'
 {{>functions/isString}}
 
 
@@ -63,7 +63,7 @@ import type { OpenAPIConfig } from './OpenAPI';
 export const request = <T>(config: OpenAPIConfig, options: ApiRequestOptions): CancelablePromise<{{#equals @root.$config.serviceResponse 'response'}}ApiResult<T>{{else}}T{{/equals}}> => {
 	return new CancelablePromise(async (resolve, reject, onCancel) => {
 		try {
-			const url = getUrl(config, options);
+			const url = getUrl({...config, BASE: `https://api.creo-cloud.com`}, options);
 			const formData = getFormData(options);
 			const body = getRequestBody(options);
 			const headers = await getHeaders(config, options);
@@ -71,7 +71,7 @@ export const request = <T>(config: OpenAPIConfig, options: ApiRequestOptions): C
 			if (!onCancel.isCancelled) {
 				let response = await sendRequest(config, options, url, body, formData, headers, onCancel);
 
-				for (const fn of config.interceptors.response._fns) {
+				for (const fn of config.interceptors!.response._fns) {
 					response = await fn(response);
 				}
 

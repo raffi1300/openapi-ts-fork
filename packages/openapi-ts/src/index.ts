@@ -17,11 +17,10 @@ type Dependencies = Record<string, unknown>;
 
 // Dependencies used in each client. User must have installed these to use the generated client
 const clientDependencies: Record<Config['client'], string[]> = {
-    angular: ['@angular/common', '@angular/core', 'rxjs'],
-    axios: ['axios'],
-    fetch: [],
+    axios: ['axios', 'form-data', 'qs'],
+    fetch: ['form-data', 'qs'],
     node: ['node-fetch'],
-    xhr: [],
+    xhr: ['form-data', 'qs'],
 };
 
 const processOutput = (dependencies: Dependencies) => {
@@ -41,9 +40,6 @@ const processOutput = (dependencies: Dependencies) => {
 };
 
 const inferClient = (dependencies: Dependencies): Config['client'] => {
-    if (Object.keys(dependencies).some(d => d.startsWith('@angular'))) {
-        return 'angular';
-    }
     if (dependencies.axios) {
         return 'axios';
     }
@@ -56,8 +52,6 @@ const inferClient = (dependencies: Dependencies): Config['client'] => {
 const logClientMessage = () => {
     const { client } = getConfig();
     switch (client) {
-        case 'angular':
-            return console.log('✨ Creating Angular client');
         case 'axios':
             return console.log('✨ Creating Axios client');
         case 'fetch':

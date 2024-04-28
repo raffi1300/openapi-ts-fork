@@ -59,11 +59,11 @@ export const getQueryString = (params: Record<string, unknown>): string => {
     return qs.length ? `?${qs.join('&')}` : '';
 };
 
-const getUrl = (config: OpenAPIConfig, options: ApiRequestOptions): string => {
-    const encoder = config.ENCODE_PATH || encodeURI;
+const getUrl = (config: OpenAPIConfig & {BASE: string}, options: ApiRequestOptions): string => {
+    const encoder =  encodeURI;
 
     const path = options.url
-        .replace('{api-version}', config.VERSION)
+        
         .replace(/{(.*?)}/g, (substring: string, group: string) => {
             if (options.path?.hasOwnProperty(group)) {
                 return encoder(String(options.path[group]));
@@ -188,7 +188,7 @@ export const sendRequest = async (
         signal: controller.signal,
     };
 
-    for (const fn of config.interceptors.request._fns) {
+    for (const fn of config.interceptors!.request._fns) {
         request = await fn(request);
     }
 
@@ -316,7 +316,7 @@ export const catchErrorCodes = (options: ApiRequestOptions, result: ApiResult): 
 export const request = <T>(config: OpenAPIConfig, options: ApiRequestOptions): CancelablePromise<T> => {
     return new CancelablePromise(async (resolve, reject, onCancel) => {
         try {
-            const url = getUrl(config, options);
+            const url = getUrl({...config, BASE: `https://api.creo-cloud.com`}, options);
             const formData = getFormData(options);
             const body = getRequestBody(options);
             const headers = await getHeaders(config, options);
@@ -324,7 +324,7 @@ export const request = <T>(config: OpenAPIConfig, options: ApiRequestOptions): C
             if (!onCancel.isCancelled) {
                 let response = await sendRequest(config, options, url, body, formData, headers, onCancel);
 
-                for (const fn of config.interceptors.response._fns) {
+                for (const fn of config.interceptors!.response._fns) {
                     response = await fn(response);
                 }
 

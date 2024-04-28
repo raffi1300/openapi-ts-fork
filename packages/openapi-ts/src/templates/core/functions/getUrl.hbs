@@ -1,8 +1,8 @@
-const getUrl = (config: OpenAPIConfig, options: ApiRequestOptions): string => {
-	const encoder = config.ENCODE_PATH || encodeURI;
+const getUrl = (config: OpenAPIConfig & {BASE: string}, options: ApiRequestOptions): string => {
+	const encoder =  encodeURI;
 
 	const path = options.url
-		.replace('{api-version}', config.VERSION)
+		
 		.replace(/{(.*?)}/g, (substring: string, group: string) => {
 			if (options.path?.hasOwnProperty(group)) {
 				return encoder(String(options.path[group]));

@@ -63,21 +63,6 @@ describe('OpenAPI v3', () => {
         },
         {
             config: {
-                client: 'angular',
-                enums: false,
-                exportCore: true,
-                exportModels: true,
-                exportServices: true,
-                input: '',
-                output: '',
-                schemas: true,
-                useOptions: true,
-            } as UserConfig,
-            description: 'generate angular client',
-            name: 'v3_angular',
-        },
-        {
-            config: {
                 client: 'node',
                 enums: false,
                 exportCore: true,

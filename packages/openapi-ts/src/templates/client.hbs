@@ -1,18 +1,8 @@
-{{#equals @root.$config.client 'angular'}}
-import { NgModule} from '@angular/core';
-import { HttpClientModule } from '@angular/common/http';
 
-import { AngularHttpRequest } from './core/AngularHttpRequest';
-import { BaseHttpRequest } from './core/BaseHttpRequest';
-import type { OpenAPIConfig } from './core/OpenAPI';
-import { OpenAPI } from './core/OpenAPI';
-import { Interceptors } from './core/OpenAPI';
-{{else}}
 import type { BaseHttpRequest } from './core/BaseHttpRequest';
 import type { OpenAPIConfig } from './core/OpenAPI';
 import { Interceptors } from './core/OpenAPI';
 import { {{{httpRequest}}} } from './core/{{{httpRequest}}}';
-{{/equals}}
 
 {{#if services}}
 {{#each services}}
@@ -20,38 +10,11 @@ import { {{{name}}}{{{@root.$config.postfixServices}}} } from './services.gen';
 {{/each}}
 {{/if}}
 
-{{#equals @root.$config.client 'angular'}}
-@NgModule({
-	imports: [HttpClientModule],
-	providers: [
-		{
-			provide: OpenAPI,
-			useValue: {
-				BASE: OpenAPI?.BASE ?? '{{{server}}}',
-				VERSION: OpenAPI?.VERSION ?? '{{{version}}}',
-				WITH_CREDENTIALS: OpenAPI?.WITH_CREDENTIALS ?? false,
-				CREDENTIALS: OpenAPI?.CREDENTIALS ?? 'include',
-				TOKEN: OpenAPI?.TOKEN,
-				USERNAME: OpenAPI?.USERNAME,
-				PASSWORD: OpenAPI?.PASSWORD,
-				HEADERS: OpenAPI?.HEADERS,
-				ENCODE_PATH: OpenAPI?.ENCODE_PATH,
-				interceptors: {
-					response: new Interceptors(),
-				},
-			} as OpenAPIConfig,
-		},
-		{
-			provide: BaseHttpRequest,
-			useClass: AngularHttpRequest,
-		},
-		{{#each services}}
-		{{{name}}}{{{@root.$config.postfixServices}}},
-		{{/each}}
-	]
-})
-export class {{{@root.$config.name}}} {}
-{{else}}
+type AuthToken = {
+	access_token: string 
+	expires_in: number
+	token_type: 'Bearer'
+}
 type HttpRequestConstructor = new (config: OpenAPIConfig) => BaseHttpRequest;
 
 export class {{{@root.$config.name}}} {
@@ -61,27 +24,98 @@ export class {{{@root.$config.name}}} {
 	{{/each}}
 
 	public readonly request: BaseHttpRequest;
-
-	constructor(config?: Partial<OpenAPIConfig>, HttpRequest: HttpRequestConstructor = {{{httpRequest}}}) {
+  public readonly refreshToken: () => Promise<string | undefined>;
+	constructor(config: OpenAPIConfig, HttpRequest: HttpRequestConstructor = {{{httpRequest}}}) {
+		if (!config || !config.getKey || !config.updateKey || !config.CREO_CLIENT_ID || !config.CREO_CLIENT_SECRET) {
+			console.error('Creo configuration has not been completed. Please provide all necessary configuration values to the Creo constructor.')	
+			throw new Error('Invalid Creo configuration')
+		} 
 		this.request = new HttpRequest({
-			BASE: config?.BASE ?? '{{{server}}}',
-			VERSION: config?.VERSION ?? '{{{version}}}',
-			WITH_CREDENTIALS: config?.WITH_CREDENTIALS ?? false,
-			CREDENTIALS: config?.CREDENTIALS ?? 'include',
-			TOKEN: config?.TOKEN,
-			USERNAME: config?.USERNAME,
-			PASSWORD: config?.PASSWORD,
-			HEADERS: config?.HEADERS,
-			ENCODE_PATH: config?.ENCODE_PATH,
+			CREO_CLIENT_ID: config?.CREO_CLIENT_ID ?? '',
+			CREO_CLIENT_SECRET: config?.CREO_CLIENT_SECRET ?? '',
+			getKey: config.getKey,
+			updateKey: config.updateKey,
 			interceptors: {
-                request: new Interceptors(),
-                response: new Interceptors(),
-            },
+					request: new Interceptors(),
+					response: new Interceptors(),
+			},
 		});
+
+		this.refreshToken = async () => {
+      try {
+        if (!config || !config.updateKey) {
+          throw new Error("Your Creo constructor configuration is invalid.");
+        }
+        const authHeader = Buffer.from(
+          config.CREO_CLIENT_ID + ":" + config.CREO_CLIENT_SECRET
+        ).toString("base64");
+        const data = await this.request.request({
+          url: `/api/auth/token`,
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Basic ${authHeader}`,
+          },
+          method: "GET",
+          
+
+        });
+        await config.updateKey((data as AuthToken).access_token);
+        return (data as AuthToken).access_token;
+      } catch (e) {
+        console.error("Error in refresh", e);
+      }
+    };
+    this.request.config.interceptors!.request.use(async (req) => {
+      if (req.url?.includes("/api/auth/token")) return req;
+      if (!config.getKey) {
+        throw new Error("getKey function has not been defined");
+      }
+      const authToken = await config.getKey();
+      if (!req.headers) {
+        req.headers = {};
+      }
+      req.headers.Authorization = `Bearer ${authToken}`;
+      return req;
+    });
+    this.request.config.interceptors!.response.use(async (response) => {
+      if (response?.data?.code == "INVALID_LOGIN_ATTEMPT") {
+        return response;
+      }
+      if (
+        (response?.status == 403 || response?.status == 401) &&
+        !response?.config?.url?.includes("/api/auth/token")
+      ) {
+        const newToken = await this.refreshToken();
+        if (response?.config) {
+          response.config.headers.Authorization = `Bearer ${newToken}`;
+          return this.request.request({
+            // ...response.config,
+            url: response.request.path,
+            method: response.request.method as
+              | "GET"
+              | "PUT"
+              | "POST"
+              | "DELETE"
+              | "OPTIONS"
+              | "HEAD"
+              | "PATCH",
+            headers: response.config.headers,
+            body: response.config.data,
+            formData: response.request.formData,
+          });
+          return response;
+        } else {
+          return response;
+        }
+      } else if (response?.status >= 300) {
+        return response;
+      }
+      return response as any;
+    });
+    this.refreshToken();
 
 		{{#each services}}
 		this.{{{camelCase name}}} = new {{{name}}}{{{@root.$config.postfixServices}}}(this.request);
 		{{/each}}
 	}
 }
-{{/equals}}

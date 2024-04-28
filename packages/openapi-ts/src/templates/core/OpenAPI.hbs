@@ -1,6 +1,3 @@
-{{~#equals @root.$config.client 'angular'~}}
-import type { HttpResponse } from '@angular/common/http';
-{{~/equals~}}
 {{~#equals @root.$config.client 'axios'~}}
 import type { AxiosRequestConfig, AxiosResponse } from 'axios';
 {{~/equals~}}
@@ -35,21 +32,14 @@ export class Interceptors<T> {
     this._fns = [...this._fns, fn];
   }
 }
-
+type GetKey =  (() => Promise<string | null>);
+type UpdateKey = ((val: string) => Promise<void>);
 export type OpenAPIConfig = {
-	BASE: string;
-	CREDENTIALS: 'include' | 'omit' | 'same-origin';
-	ENCODE_PATH?: ((path: string) => string) | undefined;
-	HEADERS?: Headers | Resolver<Headers> | undefined;
-	PASSWORD?: string | Resolver<string> | undefined;
-	TOKEN?: string | Resolver<string> | undefined;
-	USERNAME?: string | Resolver<string> | undefined;
-	VERSION: string;
-	WITH_CREDENTIALS: boolean;
-	interceptors: {
-		{{~#equals @root.$config.client 'angular'~}}
-		response: Interceptors<HttpResponse<any>>;
-		{{~/equals~}}
+	CREO_CLIENT_ID: string;
+	CREO_CLIENT_SECRET: string;
+	getKey: GetKey;
+  updateKey: UpdateKey;
+	interceptors?: {
 		{{~#equals @root.$config.client 'axios'~}}
 		request: Interceptors<AxiosRequestConfig>;
 		response: Interceptors<AxiosResponse>;
@@ -70,19 +60,12 @@ export type OpenAPIConfig = {
 };
 
 export const OpenAPI: OpenAPIConfig = {
-	BASE: '{{{server}}}',
-	CREDENTIALS: 'include',
-	ENCODE_PATH: undefined,
-	HEADERS: undefined,
-	PASSWORD: undefined,
-	TOKEN: undefined,
-	USERNAME: undefined,
-	VERSION: '{{{version}}}',
-	WITH_CREDENTIALS: false,
+	CREO_CLIENT_ID: '',
+	CREO_CLIENT_SECRET: '',
+  getKey: () => Promise.resolve(''),
+  updateKey: () => Promise.resolve(),
 	interceptors: {
-		{{~#notEquals @root.$config.client 'angular'~}}
 		request: new Interceptors(),
-		{{~/notEquals~}}
 		response: new Interceptors(),
 	},
 };

@@ -1,27 +1,26 @@
 export const getHeaders = async (config: OpenAPIConfig, options: ApiRequestOptions): Promise<Headers> => {
-	const [token, username, password, additionalHeaders] = await Promise.all([
-		resolve(options, config.TOKEN),
-		resolve(options, config.USERNAME),
-		resolve(options, config.PASSWORD),
-		resolve(options, config.HEADERS),
+		const [token, username, password] = await Promise.all([
+		resolve(options, config.getKey()),
+		resolve(options, config.CREO_CLIENT_ID),
+		resolve(options, config.CREO_CLIENT_SECRET),
 	]);
 
 	const headers = Object.entries({
 		Accept: 'application/json',
-		...additionalHeaders,
 		...options.headers,
 	})
-		.filter(([, value]) => value !== undefined && value !== null)
-		.reduce((headers, [key, value]) => ({
-			...headers,
-			[key]: String(value),
-		}), {} as Record<string, string>);
+	.filter(([_, value]) => value !== undefined && value !== null)
+	.reduce((headers, [key, value]) => ({
+		...headers,
+		[key]: String(value),
+	}), {} as Record<string, string>);
 
-	if (isStringWithValue(token)) {
-		headers['Authorization'] = `Bearer ${token}`;
-	}
+  if (isStringWithValue(token) && !options.url.includes("api/auth/token")) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
 
-	if (isStringWithValue(username) && isStringWithValue(password)) {
+
+	if (isStringWithValue(username) && isStringWithValue(password) && !isStringWithValue(token)) {
 		const credentials = base64(`${username}:${password}`);
 		headers['Authorization'] = `Basic ${credentials}`;
 	}

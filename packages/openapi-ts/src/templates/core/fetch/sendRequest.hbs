@@ -22,7 +22,7 @@ export const sendRequest = async (
 	}
 	{{/equals}}
 
-	for (const fn of config.interceptors.request._fns) {
+	for (const fn of config.interceptors!.request._fns) {
 		request = await fn(request);
 	}
 

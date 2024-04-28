@@ -6,8 +6,6 @@ import type { Config } from '../types/config';
  */
 export const getHttpRequestName = (client: Config['client']): string => {
     switch (client) {
-        case 'angular':
-            return 'AngularHttpRequest';
         case 'axios':
             return 'AxiosHttpRequest';
         case 'fetch':

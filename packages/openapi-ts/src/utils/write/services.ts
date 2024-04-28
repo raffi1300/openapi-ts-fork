@@ -46,11 +46,9 @@ const toOperationReturnType = (operation: Operation) => {
     if (config.useOptions && config.serviceResponse === 'response') {
         returnType = compiler.typedef.basic('ApiResult', [returnType]);
     }
-    if (config.client === 'angular') {
-        returnType = compiler.typedef.basic('Observable', [returnType]);
-    } else {
-        returnType = compiler.typedef.basic('CancelablePromise', [returnType]);
-    }
+
+    returnType = compiler.typedef.basic('CancelablePromise', [returnType]);
+
     return returnType;
 };
 
@@ -161,13 +159,7 @@ const toOperationStatements = (operation: Operation) => {
     if (config.name) {
         statements.push(compiler.class.return({ args: [requestOptions], name: 'this.httpRequest.request' }));
     } else {
-        if (config.client === 'angular') {
-            statements.push(
-                compiler.class.return({ args: ['OpenAPI', 'this.http', requestOptions], name: '__request' })
-            );
-        } else {
-            statements.push(compiler.class.return({ args: ['OpenAPI', requestOptions], name: '__request' }));
-        }
+        statements.push(compiler.class.return({ args: ['OpenAPI', requestOptions], name: '__request' }));
     }
     return statements;
 };
@@ -178,7 +170,7 @@ export const processService = (service: Service) => {
         const node = compiler.class.method({
             accessLevel: 'public',
             comment: toOperationComment(operation),
-            isStatic: config.name === undefined && config.client !== 'angular',
+            isStatic: config.name === undefined,
             name: operation.name,
             parameters: toOperationParamType(operation),
             returnType: toOperationReturnType(operation),
@@ -191,19 +183,13 @@ export const processService = (service: Service) => {
     if (config.name) {
         members.unshift(
             compiler.class.constructor({
-                parameters: [{ accessLevel: 'public', isReadOnly: true, name: 'httpRequest', type: 'BaseHttpRequest' }],
-            })
-        );
-    } else if (config.client === 'angular') {
-        members.unshift(
-            compiler.class.constructor({
-                parameters: [{ accessLevel: 'public', isReadOnly: true, name: 'http', type: 'HttpClient' }],
+                parameters: [{ accessLevel: 'private', isReadOnly: true, name: 'httpRequest', type: 'BaseHttpRequest' }],
             })
         );
     }
 
     return compiler.class.create({
-        decorator: config.client === 'angular' ? { args: [{ providedIn: 'root' }], name: 'Injectable' } : undefined,
+        decorator: undefined,
         members,
         name: `${service.name}${config.postfixServices}`,
     });
@@ -228,22 +214,14 @@ export const writeServices = async (openApi: OpenApi, outputPath: string, client
         imports = [...imports, exported];
     }
 
-    // Import required packages and core files.
-    if (config.client === 'angular') {
-        fileServices.addNamedImport('Injectable', '@angular/core');
-        if (config.name === undefined) {
-            fileServices.addNamedImport('HttpClient', '@angular/common/http');
-        }
-        fileServices.addNamedImport({ isTypeOnly: true, name: 'Observable' }, 'rxjs');
-    } else {
-        fileServices.addNamedImport({ isTypeOnly: true, name: 'CancelablePromise' }, './core/CancelablePromise');
-    }
+    fileServices.addNamedImport({ isTypeOnly: true, name: 'CancelablePromise' }, './core/CancelablePromise');
+
     if (config.serviceResponse === 'response') {
         fileServices.addNamedImport({ isTypeOnly: true, name: 'ApiResult' }, './core/ApiResult');
     }
     if (config.name) {
         fileServices.addNamedImport(
-            { isTypeOnly: config.client !== 'angular', name: 'BaseHttpRequest' },
+            { isTypeOnly: true, name: 'BaseHttpRequest' },
             './core/BaseHttpRequest'
         );
     } else {

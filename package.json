@@ -13,8 +13,9 @@
     "bugs": {
         "url": "https://github.com/hey-api/openapi-ts/issues"
     },
+    "bin": "creo-openapi",
     "scripts": {
-        "build": "pnpm --recursive build",
+        "build": "npm run build --recursive  ",
         "changeset": "changeset",
         "docs": "pnpm --filter openapi-ts-docs --",
         "format": "pnpm --recursive format",

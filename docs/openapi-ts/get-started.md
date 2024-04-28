@@ -13,7 +13,7 @@ description: Get started with @hey-api/openapi-ts.
 - export TypeScript interfaces from OpenAPI v2.0, v3.0, and v3.1 specifications
 - support JSON or YAML input files
 - support external references using [json-schema-ref-parser](https://github.com/APIDevTools/json-schema-ref-parser/)
-- create fetch, axios, angular, node.js, or xhr REST clients
+- create fetch, axios, node.js, or xhr REST clients
 - export JSON Schemas from OpenAPI specifications
 - abortable requests through cancellable promise pattern
 

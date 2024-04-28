@@ -25,9 +25,9 @@ export const writeClientIndex = async (client: Client, outputPath: string): Prom
         if (config.name) {
             fileIndex.add(compiler.export.named('BaseHttpRequest', './core/BaseHttpRequest'));
         }
-        if (config.client !== 'angular') {
-            fileIndex.add(compiler.export.named(['CancelablePromise', 'CancelError'], './core/CancelablePromise'));
-        }
+
+        fileIndex.add(compiler.export.named(['CancelablePromise', 'CancelError'], './core/CancelablePromise'));
+
         fileIndex.add(
             compiler.export.named(['OpenAPI', { isTypeOnly: true, name: 'OpenAPIConfig' }], './core/OpenAPI')
         );
